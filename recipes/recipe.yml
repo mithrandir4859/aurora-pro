@@ -2,7 +2,7 @@
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
 # image will be published to ghcr.io/mithrandir4859/aurora-pro
 name: aurora-pro
-description: Aurora DX with Kvantum and snapper baked in, so nothing has to be layered.
+description: Aurora DX with Kvantum, snapper and a native Steam stack baked in, so nothing has to be layered.
 
 # Aurora DX, KDE developer image. `stable` is the weekly, kernel-gated stream --
 # the same thing this machine is already rebased to.
@@ -26,14 +26,49 @@ modules:
         # btrfs snapshots for the subvolumes ostree does not cover.
         # Does NOT replace ostree rollback for the OS itself.
         - snapper
-        # --- later ---
-        # Steam is multilib; if the dnf module trips over i686 deps, drop to a
-        # `containerfile` module running dnf5 directly instead.
-        # - steam
-        # - steam-devices
+
+  # Gaming. Steam cannot be layered on aurora-dx at all -- rpm-ostree fails with
+  # "Hardlinking ... index.theme: File exists" because Aurora edits the default
+  # icon theme and libXcursor can then no longer hardlink (ublue-os/bluefin#1258,
+  # closed "not planned"). A container build has no ostree hardlinking, so it
+  # installs cleanly here and only here.
+  #
+  # negativo17, NOT rpmfusion: Aurora already replaces Mesa with negativo17's
+  # build (42 packages on the running system come from there). Steam pulls the
+  # 32-bit Mesa/Vulkan stack, and multilib requires both arches at the same
+  # version -- negativo17 ships i686 and x86_64 together, Fedora's would not
+  # match the installed x86_64 ones.
+  #
+  # Depsolved against the live aurora-dx package set before committing:
+  # 226 installs, 280 MiB download, ~740 MiB on disk.
+  - type: dnf
+    repos:
+      nonfree: negativo17
+      files:
+        - https://negativo17.org/repos/fedora-steam.repo
+      keys:
+        - https://negativo17.org/repos/RPM-GPG-KEY-slaanesh
+      cleanup: true
+    install:
+      packages:
+        # Steam client, from negativo17's steam repo (1.0.0.87-2.fc44).
+        - steam
+        # Controller udev rules. Plain Fedora, noarch. On stock Aurora these
+        # only arrive with the Steam flatpak.
+        - steam-devices
+        # Valve's compositor. Plain Fedora. The binary only -- Game Mode as a
+        # session needs kernel patches Aurora's stock kernel does not have.
+        - gamescope
+        # Overlay. Plain Fedora, both arches.
+        - mangohud
+        # Deliberately omitted: lutris drags in wine-core on both arches,
+        # ~1.9 GB, and Steam ships its own Proton. Add it if you want
+        # non-Steam launchers and are willing to pay for them.
         # - lutris
-        # - mangohud
-        # - gamescope
+        #
+        # Also omitted: akmod-xone / akmod-xpadneo live in the same negativo17
+        # steam repo, but they are kernel modules with no ublue prebuild for
+        # Aurora's stock Fedora kernel. Not worth the breakage.
 
   # sets up the policy & signing files so signed images verify properly
   - type: signing
