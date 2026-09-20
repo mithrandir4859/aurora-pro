@@ -1,45 +1,39 @@
 ---
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
-# image will be published to ghcr.io/<user>/<name>
-name: template
-# description will be included in the image's metadata
-description: This is my personal OS image.
+# image will be published to ghcr.io/mithrandir4859/aurora-pro
+name: aurora-pro
+description: Aurora DX with Kvantum and snapper baked in, so nothing has to be layered.
 
-# the base image to build on top of (FROM) and the version tag to use
-base-image: ghcr.io/ublue-os/silverblue-main
-image-version: latest # You can pin to a specific version of Fedora as well
+# Aurora DX, KDE developer image. `stable` is the weekly, kernel-gated stream --
+# the same thing this machine is already rebased to.
+base-image: ghcr.io/ublue-os/aurora-dx
+image-version: stable
 
 # module configuration, executed in order
-# you can include multiple instances of the same module
 modules:
+  # copies files/system/* into the image root. Currently empty -- this is where
+  # a snapper config or a udev rule would go later.
   - type: files
     files:
       - source: system
-        destination: / # copies files/system/* (* means everything inside it) into your image's root folder /
+        destination: /
 
   - type: dnf
-    repos:
-      copr:
-        - atim/starship
     install:
       packages:
-        - micro
-        - starship
-    remove:
-      packages:
-        # example: removing firefox (in favor of the flatpak)
-        # "firefox" is the main package, "firefox-langpacks" is a dependency
-        - firefox
-        - firefox-langpacks # also remove firefox dependency (not required for all packages, this is a special case)
+        # Qt style engine. Was a layered package before this image existed.
+        - kvantum
+        # btrfs snapshots for the subvolumes ostree does not cover.
+        # Does NOT replace ostree rollback for the OS itself.
+        - snapper
+        # --- later ---
+        # Steam is multilib; if the dnf module trips over i686 deps, drop to a
+        # `containerfile` module running dnf5 directly instead.
+        # - steam
+        # - steam-devices
+        # - lutris
+        # - mangohud
+        # - gamescope
 
-  - type: default-flatpaks
-    configurations:
-      - notify: true # Send notification after install/uninstall is finished (true/false)
-        scope: system
-        # If no repo information is specified, Flathub will be used by default
-        install: # system flatpaks we want all users to have and not remove
-          - org.mozilla.firefox
-          - org.gnome.Loupe
-      - scope: user # Also add Flathub user repo, but no user packages
-
-  - type: signing # this sets up the proper policy & signing files for signed images to work fully
+  # sets up the policy & signing files so signed images verify properly
+  - type: signing
