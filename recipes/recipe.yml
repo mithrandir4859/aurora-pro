@@ -2,7 +2,7 @@
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
 # image will be published to ghcr.io/mithrandir4859/aurora-pro
 name: aurora-pro
-description: Aurora DX with Kvantum, snapper and a native Steam stack baked in, so nothing has to be layered.
+description: Aurora DX with Kvantum, snapper, a native Steam/Wine stack and the Bazzite extras that do not need its kernel.
 
 # Aurora DX, KDE developer image. `stable` is the weekly, kernel-gated stream --
 # the same thing this machine is already rebased to.
@@ -93,6 +93,61 @@ modules:
         # Omitted: akmod-xone / akmod-xpadneo live in the same negativo17
         # steam repo, but they are kernel modules with no ublue prebuild for
         # Aurora's stock Fedora kernel. Not worth the breakage.
+
+  # "aurora-max": the parts of Bazzite that need neither its kernel nor its
+  # Mesa. Explicitly NOT taken: terra-mesa (a Mesa replacement -- it would
+  # fight the negativo17 Mesa the whole 32-bit stack above depends on),
+  # terra-gamescope and terra-mangohud (patched forks whose patches serve Game
+  # Mode and HDR, both of which need Bazzite's kernel), kernel-bazzite itself,
+  # Handheld Daemon, ryzenadj and the Steam Deck SD-card plumbing.
+  #
+  # Also not taken: Bazzite removes `gamemode`; aurora-dx ships it and it stays.
+  #
+  # Depsolved against the live aurora-dx package set: 24 installs, 25 MiB
+  # download, 82 MiB on disk, and ZERO replacements or removals -- libvirt,
+  # qemu, incus and rocm are untouched.
+  #
+  # Both COPRs below already ship in aurora-dx at enabled=0, exactly like
+  # fedora-multimedia. This turns them on for the build; `cleanup` puts them
+  # back afterwards so the shipped image does not pull from them at runtime.
+  - type: dnf
+    repos:
+      cleanup: true
+      copr:
+        enable:
+          - lizardbyte/stable
+          - ublue-os/packages
+    install:
+      packages:
+        # Game streaming host (the Moonlight server side). Capitalised -- the
+        # package really is `Sunshine`. This is the one item here that is
+        # genuinely image-shaped: it works poorly from a flatpak sandbox.
+        - Sunshine
+        # Mounts internal drive partitions under /media automatically. Bazzite
+        # installs and enables it; nothing gaming-specific about it.
+        - ublue-os-media-automount-udev
+        # Post-processing Vulkan layer, both arches as Bazzite installs it.
+        - vkBasalt
+        - vkBasalt.i686
+        # GUI for MangoHud and vkBasalt settings, instead of editing configs.
+        - goverlay
+        # Low-overhead game capture for OBS.
+        - obs-studio-plugin-vkcapture
+        # Small utilities Bazzite ships.
+        - evtest
+        - xdg-terminal-exec
+        # Skipped: openrgb -- only useful with RGB peripherals.
+        # Unavailable: umu-launcher / umu-wrapper are Terra-only, and Terra is
+        # not worth enabling next to the negativo17 Mesa arrangement. Lutris
+        # uses its own downloaded runners instead.
+
+  # Bazzite enables this after installing the package. Note Bazzite guards it
+  # with `|| true`, so if this module hard-fails the build, drop it and enable
+  # the service by hand on each machine instead.
+  - type: systemd
+    system:
+      enabled:
+        - ublue-os-media-automount.service
 
   # sets up the policy & signing files so signed images verify properly
   - type: signing
