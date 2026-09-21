@@ -25,6 +25,19 @@ modules:
         # btrfs snapshots for the subvolumes ostree does not cover.
         # Does NOT replace ostree rollback for the OS itself.
         - snapper
+        # GUI for snapper and btrfs subvolumes. Image-shaped because it runs as
+        # root through a polkit policy in /usr. Ships no snapper config: create
+        # one for /var/home at runtime (never /, ostree owns that), it lands in
+        # /etc and survives rebases. Same package Bazzite bakes in.
+        # Pulls btrfsmaintenance as a weak dep (57 KiB, scrub/balance timers,
+        # all disabled by Fedora's preset). If enabling scrub, point
+        # BTRFS_SCRUB_MOUNTPOINTS at /var -- the default "/" is not btrfs here.
+        - btrfs-assistant
+        # Off-disk backups via btrfs send/receive, to a btrfs USB disk or
+        # another btrfs host. Here "just in case": inert until configured --
+        # ships only btrbk.conf.example and a daily timer that Fedora's preset
+        # leaves disabled. Local snapshots of /var/home stay snapper's job.
+        - btrbk
 
   # Gaming. Steam cannot be layered on aurora-dx at all -- rpm-ostree fails with
   # "Hardlinking ... index.theme: File exists" because Aurora edits the default

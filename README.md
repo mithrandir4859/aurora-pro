@@ -18,7 +18,7 @@ What belongs in the image: things that need to write to `/usr`, own a system-wid
 
 See `recipes/recipe.yml`, which also explains each choice in its comments.
 
-- `kvantum` (Qt style engine) and `snapper` (btrfs snapshots).
+- `kvantum` (Qt style engine), `snapper` (btrfs snapshots), `btrfs-assistant` (its GUI, which brings `btrfsmaintenance` along as a weak dependency) and `btrbk` (send/receive backups, unconfigured).
 - Gaming, from negativo17 (the same repo family Aurora's Mesa comes from, so the 32-bit stack matches): `steam`, `steam-devices`, `gamescope`, `mangohud`.
 - Wine as a host tool: `wine`, `wine-core.i686`, `wine-pulseaudio.i686`, `wine-mono`, `winetricks`, `lutris`.
 - The BlueBuild `signing` module, so machines verify the image's signature.
