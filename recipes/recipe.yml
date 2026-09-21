@@ -4,8 +4,7 @@
 name: aurora-pro
 description: Aurora DX with Kvantum, snapper and a native Steam stack baked in, so nothing has to be layered.
 
-# Aurora DX, KDE developer image. `stable` is the weekly, kernel-gated stream --
-# the same thing this machine is already rebased to.
+# Aurora DX, KDE developer image. `stable` is the weekly, kernel-gated stream.
 base-image: ghcr.io/ublue-os/aurora-dx
 image-version: stable
 
