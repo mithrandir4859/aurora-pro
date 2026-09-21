@@ -39,8 +39,16 @@ modules:
   # version -- negativo17 ships i686 and x86_64 together, Fedora's would not
   # match the installed x86_64 ones.
   #
+  # Wine is the same story: `rpm-ostree install wine` fails on Silverblue and
+  # Kinoite with i686 hardlink errors (unixODBC, openal-soft -- RHBZ #1846803,
+  # rpm-ostree#1937), so a system-wide `wine` command can only come from the
+  # image. Bottles-as-flatpak and a distrobox both work but put it behind a
+  # wall; neither gives you `wine foo.exe` in a terminal or .exe associations.
+  #
   # Depsolved against the live aurora-dx package set before committing:
-  # 226 installs, 280 MiB download, ~740 MiB on disk.
+  # 402 installs, 1 GiB download, ~4 GiB on disk. The expensive part is the
+  # 32-bit Mesa stack, which Steam requires anyway -- Wine on top of it is
+  # incremental rather than a second bootstrap.
   - type: dnf
     repos:
       nonfree: negativo17
@@ -61,12 +69,28 @@ modules:
         - gamescope
         # Overlay. Plain Fedora, both arches.
         - mangohud
-        # Deliberately omitted: lutris drags in wine-core on both arches,
-        # ~1.9 GB, and Steam ships its own Proton. Add it if you want
-        # non-Steam launchers and are willing to pay for them.
-        # - lutris
-        #
-        # Also omitted: akmod-xone / akmod-xpadneo live in the same negativo17
+
+        # Wine as a host capability, not just a game runner: `wine foo.exe`
+        # from any shell, .exe/.msi associations, menu entries for installed
+        # Windows apps, winecfg/wineboot/winetricks on hand-made prefixes.
+        - wine
+        # MUST be explicit. Fedora's `wine` metapackage pulls x86_64 only
+        # (measured: zero i686 packages), and most old Windows games are
+        # 32-bit binaries -- without this, Wine cannot run them.
+        - wine-core.i686
+        - wine-pulseaudio.i686
+        # .NET applications. wine-gecko comes along for embedded HTML.
+        - wine-mono
+        - winetricks
+
+        # ~139 MB now that Wine is already present. Note Lutris prefers its
+        # own downloaded runners (~/.local/share/lutris/runners/wine/) for
+        # games and treats system Wine as a fallback -- it is here for the
+        # library management and the community install scripts, not because
+        # it needs the Wine above.
+        - lutris
+
+        # Omitted: akmod-xone / akmod-xpadneo live in the same negativo17
         # steam repo, but they are kernel modules with no ublue prebuild for
         # Aurora's stock Fedora kernel. Not worth the breakage.
 
