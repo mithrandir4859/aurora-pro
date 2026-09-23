@@ -1,0 +1,23 @@
+# GitHub only fires `schedule` on the default branch, so this lives on main and
+# dispatches the dev branch's build.yml, which checks the fingerprint and only
+# builds when something changed. Same trick as ublue-os/aurora's
+# trigger-schedule-stable-image.yml. Delete once dev is merged into main.
+name: schedule dev
+on:
+  schedule:
+    - cron: "*/20 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch the dev build (gated)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: gh workflow run build.yml --repo "$REPO" --ref dev -f force=false
